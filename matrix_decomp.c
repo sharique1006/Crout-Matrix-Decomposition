@@ -9,21 +9,21 @@ void displayALU(int n) {
 	printf("---------------A-----------------\n");
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
-			printf("%lf ", A[i][j]);
+			printf("%.12lf ", A[i][j]);
 		}
 		printf("\n");
 	}
 	printf("---------------L-----------------\n");
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
-			printf("%lf ", L[i][j]);
+			printf("%.12lf ", L[i][j]);
 		}
 		printf("\n");
 	}
 	printf("---------------U-----------------\n");
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
-			printf("%lf ", U[i][j]);
+			printf("%.12lf ", U[i][j]);
 		}
 		printf("\n");
 	}
@@ -38,7 +38,7 @@ void displayLU(int n) {
 			for (int k = 0; k < n; k++) {
 				sum += L[i][k] * U[k][j];
 			}
-			printf("%lf ", sum);
+			printf("%.12lf ", sum);
 		}
 		printf("\n");
 	}
@@ -76,7 +76,58 @@ void sequential(int n) {
 }
 
 void strategy1(int n, int num_threads) {
-
+	omp_set_num_threads(num_threads);
+	#pragma omp parallel shared(A,L,U)
+	{
+	
+		for (int i = 0; i < n; i++)
+		{
+			//for each row....
+			//rows are split into seperate threads for processing
+			#pragma omp for schedule(static)
+			for (int j = 0; j < n; j++)
+			{
+				//if j is smaller than i, set l[j][i] to 0
+				if (j < i)
+				{
+					L[j][i] = 0;
+					continue;
+				}
+				//otherwise, do some math to get the right value
+				L[j][i] = A[j][i];
+				for (int k = 0; k < i; k++)
+				{
+					//deduct from the current l cell the value of these 2 values multiplied
+					L[j][i] = L[j][i] - L[j][k] * U[k][i];
+				}
+			}
+			//for each row...
+			//rows are split into seperate threads for processing
+			#pragma omp for schedule(static)
+			for (int j = 0; j < n; j++)
+			{
+				//if j is smaller than i, set u's current index to 0
+				if (j < i)
+				{
+					U[i][j] = 0;
+					continue;
+				}
+				//if they're equal, set u's current index to 1
+				if (j == i)
+				{
+					U[i][j] = 1;
+					continue;
+				}
+				//otherwise, do some math to get the right value
+				U[i][j] = A[i][j] / L[i][i];
+				for (int k = 0; k < i; k++)
+				{
+					U[i][j] = U[i][j] - ((L[i][k] * U[k][j]) / L[i][i]);
+				}
+			
+			}
+		}
+	}
 }
 
 void strategy2(int n, int num_threads) {
@@ -128,7 +179,7 @@ void init_matrix(int n, char *input_file) {
 	for (int i = 0; i < n; i++) {
 		A[i] = (double *)malloc(n * sizeof(double));
 		for (int j = 0; j < n; j++) {
-			if (!fscanf(f, "%lf", &A[i][j])) {
+			if (!fscanf(f, "%140lf ", &A[i][j])) {
 				break;
 			}
 		}
