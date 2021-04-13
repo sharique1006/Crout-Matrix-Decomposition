@@ -77,21 +77,19 @@ void sequential(int n) {
 
 void strategy1(int n, int num_threads) {
 	omp_set_num_threads(num_threads);
+	int i, j, k;
+	double sum = 0;
 
-
-
-	#pragma omp parallel for shared(U)
-	for (i = 0; i < n; i++) {
+	//#pragma omp parallel for private(i)
+	for (int i = 0; i < n; i++) {
 		U[i][i] = 1;
 	}
 	#pragma omp parallel for shared(A,L,U)
-	
-	
-		for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
 		{
 			//for each row....
 			//rows are split into seperate threads for processing
-			#pragma omp parallel for schedule(dynamic)
+			#pragma omp parallel for schedule(dynamic) private(sum)
 			for (i = j; i < n; i++) {
 				sum = 0;
 				for (k = 0; k < j; k++) {
@@ -101,7 +99,7 @@ void strategy1(int n, int num_threads) {
 			}
 			//for each row...
 			//rows are split into seperate threads for processing
-			#pragma omp parallel for schedule(dynamic)
+			#pragma omp parallel for schedule(dynamic) private(sum)
 			for (i = j; i < n; i++) {
 				sum = 0;
 				for(k = 0; k < j; k++) {
@@ -114,7 +112,6 @@ void strategy1(int n, int num_threads) {
 				U[j][i] = (A[j][i] - sum) / L[j][j];
 			}
 		}
-	
 }
 
 void strategy2(int n, int t) {
