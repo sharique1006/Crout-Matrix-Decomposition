@@ -58,7 +58,6 @@ void sequential(int n) {
 			for (k = 0; k < j; k++) {
 				sum = sum + L[i][k] * U[k][j];	
 			}
-			printf("First sum = %lf\n", sum);
 			L[i][j] = A[i][j] - sum;
 		}
 
@@ -85,7 +84,7 @@ void strategy1(int n, int num_threads) {
 		{
 			//for each row....
 			//rows are split into seperate threads for processing
-			#pragma omp for schedule(static)
+			#pragma omp parallel for schedule(dynamic)
 			for (int j = 0; j < n; j++)
 			{
 				//if j is smaller than i, set l[j][i] to 0
@@ -104,7 +103,7 @@ void strategy1(int n, int num_threads) {
 			}
 			//for each row...
 			//rows are split into seperate threads for processing
-			#pragma omp for schedule(static)
+			#pragma omp parallel for schedule(dynamic)
 			for (int j = 0; j < n; j++)
 			{
 				//if j is smaller than i, set u's current index to 0
@@ -148,7 +147,6 @@ void strategy2(int n, int t) {
 					for (int k = 0; k < j; k++) {
 						sum = sum + L[i][k] * U[k][j];	
 					}
-					printf("First sum = %lf\n", sum);
 					L[i][j] = A[i][j] - sum;
 				}
 			}
