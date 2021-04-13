@@ -19,9 +19,25 @@ A = read_from_file(A_file)
 L = read_from_file(L_file)
 U = read_from_file(U_file)
 
-print(A)
-print(L)
-print(U)
+Adash = np.matmul(L, U)
 
-print('Is L Lower Triangular? {}'.format(np.allclose(LA, np.tril(LA))))
-print('Is U Upper Triangular? {}\n'.format(np.allclose(UA, np.triu(U))))
+correct = 1
+
+for i in range(A.shape[0]):
+    for j in range(A.shape[0]):
+        if abs(Adash[i][j] - A[i][j]) > 1e-3:
+            correct = 0
+            i = A.shape[0]
+            break
+
+if correct == 1:
+    print('Correct Decomposition')
+else:
+    print('Incorrect Decomposition')
+    exit(0)
+
+if (abs(np.linalg.det(U) - 1) < 1e-3):
+    print('Correct determinant of U')
+
+print('Is L Lower Triangular? {}'.format(np.allclose(L, np.tril(L))))
+print('Is U Upper Triangular? {}'.format(np.allclose(U, np.triu(U))))

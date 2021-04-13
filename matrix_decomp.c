@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
 	int strategy = atoi(argv[4]);
 
 	init_matrix(n, input_file);
-	displayALU(n);
+	//displayALU(n);
 
 	double start, end;
 
@@ -277,10 +277,10 @@ int main(int argc, char *argv[]) {
 	else if (strategy == 3) { start = omp_get_wtime(); strategy3(n, num_threads); end = omp_get_wtime(); }
 	else { start = omp_get_wtime(); strategy4(n, num_threads); end = omp_get_wtime(); }
 
-	displayLU(n);
+	//displayLU(n);
 
 	double time_taken = (end - start);
-	printf("\nTime taken in strategy %d is %f seconds\n", strategy, time_taken);
+	printf("Time taken in strategy %d is %f seconds\n", strategy, time_taken);
 	
 	write_to_file(n, num_threads, strategy);
 	//plot(n, num_threads);
