@@ -77,6 +77,13 @@ void sequential(int n) {
 
 void strategy1(int n, int num_threads) {
 	omp_set_num_threads(num_threads);
+
+
+
+	#pragma omp parallel for shared(U)
+	for (i = 0; i < n; i++) {
+		U[i][i] = 1;
+	}
 	#pragma omp parallel for shared(A,L,U)
 	
 	
@@ -85,46 +92,26 @@ void strategy1(int n, int num_threads) {
 			//for each row....
 			//rows are split into seperate threads for processing
 			#pragma omp parallel for schedule(dynamic)
-			for (int j = 0; j < n; j++)
-			{
-				//if j is smaller than i, set l[j][i] to 0
-				if (j < i)
-				{
-					L[j][i] = 0;
-					continue;
+			for (i = j; i < n; i++) {
+				sum = 0;
+				for (k = 0; k < j; k++) {
+					sum = sum + L[i][k] * U[k][j];	
 				}
-				//otherwise, do some math to get the right value
-				L[j][i] = A[j][i];
-				for (int k = 0; k < i; k++)
-				{
-					//deduct from the current l cell the value of these 2 values multiplied
-					L[j][i] = L[j][i] - L[j][k] * U[k][i];
-				}
+				L[i][j] = A[i][j] - sum;
 			}
 			//for each row...
 			//rows are split into seperate threads for processing
 			#pragma omp parallel for schedule(dynamic)
-			for (int j = 0; j < n; j++)
-			{
-				//if j is smaller than i, set u's current index to 0
-				if (j < i)
-				{
-					U[i][j] = 0;
-					continue;
+			for (i = j; i < n; i++) {
+				sum = 0;
+				for(k = 0; k < j; k++) {
+					sum = sum + L[j][k] * U[k][i];
 				}
-				//if they're equal, set u's current index to 1
-				if (j == i)
-				{
-					U[i][j] = 1;
-					continue;
+				if (L[j][j] == 0) {	
+					printf("Exiting!\n");			
+					exit(0);
 				}
-				//otherwise, do some math to get the right value
-				U[i][j] = A[i][j] / L[i][i];
-				for (int k = 0; k < i; k++)
-				{
-					U[i][j] = U[i][j] - ((L[i][k] * U[k][j]) / L[i][i]);
-				}
-			
+				U[j][i] = (A[j][i] - sum) / L[j][j];
 			}
 		}
 	
