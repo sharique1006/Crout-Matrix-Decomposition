@@ -17,6 +17,7 @@ strategy3:
 
 strategy4:
 	@ ./matrix_decomp $(n) $(f) $(t) 4 
+
 clean:
 	@ rm -rf output*
 	@ rm -rf input_*
