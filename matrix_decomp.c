@@ -126,24 +126,24 @@ void strategy2(int n, int t) {
 			{
 				for (int i = j; i < n; i++) {
 					double sum = 0;
-					L[i][j] = A[i][j];
-					for (int k = 0; k < j; k++) {	
-						L[i][j] = L[i][j] - L[i][k] * U[k][j];
+					for (int k = 0; k < j; k++) {
+						sum = sum + L[i][k] * U[k][j];	
 					}
+					L[i][j] = A[i][j] - sum;
 				}
 			}
 			#pragma omp section
 			{
 				for (int i = j; i < n; i++) {
 					double sum = 0;
-					U[j][i] = A[j][i] / L[j][j];
 					for(int k = 0; k < j; k++) {
-						U[j][i] = U[j][i] - ((L[j][k] * U[k][i]) / L[j][j]);
+						sum = sum + L[j][k] * U[k][i];
 					}
 					if (L[j][j] == 0) {	
 						printf("Exiting!\n");			
 						exit(0);
 					}
+					U[j][i] = (A[j][i] - sum) / L[j][j];
 				}
 			}
 		}
