@@ -20,7 +20,6 @@ strategy4:
 
 clean:
 	@ rm -rf output*
-	@ rm -rf input_*
 	@ rm -rf time.txt
 	@ rm -rf plot.png
 	@ rm -rf matrix_decomp
