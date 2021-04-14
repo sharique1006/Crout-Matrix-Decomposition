@@ -79,7 +79,6 @@ void strategy1(int n, int num_threads) {
 	omp_set_num_threads(num_threads);
 	double sum = 0;
 	// omp_set_nested(1);
-	int* thread_sum_array; 	
 
 	#pragma omp parallel for
 	for (int i = 0; i < n; i++) {
@@ -87,43 +86,28 @@ void strategy1(int n, int num_threads) {
 	}
 	// #pragma omp parallel shared(A,L,U)
 		for (int j = 0; j < n; j++) {
-			// #pragma omp parallel for schedule(dynamic,1)
+			#pragma omp parallel for schedule(dynamic)
 			for (int i = j; i < n; i++) {
 				sum = 0;
-				// L[i][j] = A[i][j];
-				thread_sum_array = (int *)calloc(sizeof(int)*omp_get_num_threads());
-				for(int p=0;p<omp_get_num_threads();p++) 
-		     		thread_sum_array[p] =0;
-				#pragma omp parallel for default(shared)
-		        for (int k = 0; k < j; k++){
-		            thread_sum_array[omp_get_thread_num()] = thread_sum_array[omp_get_thread_num()] +L[i][k] * U[k][j];	
-		    	}
-		    	for(int p=0;p<omp_get_num_threads();p++) 
-		     		sum += thread_sum_array[p]; 
-				L[i][j] = A[i][j] - sum;
+				L[i][j] = A[i][j];
+				for (int k = 0; k < j; k++) {
+					// sum = sum + L[i][k] * U[k][j];	
+					L[i][j] = L[i][j] - L[i][k] * U[k][j];
+				}
+				// L[i][j] = A[i][j] - sum;
 			}
-			// #pragma omp parallel for schedule(dynamic,1)
+			#pragma omp parallel for schedule(dynamic)
 			for (int i = j; i < n; i++) {
 				sum = 0;
-				// U[j][i] = A[j][i] / L[j][j];
-				thread_sum_array = (int *)calloc(sizeof(int)*omp_get_num_threads());
-				for(int p=0;p<omp_get_num_threads();p++) 
-		     		thread_sum_array[p] =0;
-				#pragma omp parallel for default(shared)
-		        for (int k = 0; k < j; k++){
-		            thread_sum_array[omp_get_thread_num()] = thread_sum_array[omp_get_thread_num()] + L[j][k] * U[k][i];
-		    	}
-		    	for(int p=0;p<omp_get_num_threads();p++) 
-		     		sum += thread_sum_array[p]; 
-				// for(int k = 0; k < j; k++) {
-				// 	sum = sum + L[j][k] * U[k][i];
-				// 	// U[j][i] = U[j][i] - ((L[j][k] * U[k][i]) / L[j][j]);
-				// }
+				U[j][i] = A[j][i] / L[j][j];
+				for(int k = 0; k < j; k++) {
+					U[j][i] = U[j][i] - ((L[j][k] * U[k][i]) / L[j][j]);
+				}
 				if (L[j][j] == 0) {	
 					printf("Exiting!\n");			
 					exit(0);
 				}
-				U[j][i] = (A[j][i] - sum) / L[j][j];
+				// U[j][i] = (A[j][i] - sum) / L[j][j];
 			}
 		}
 }
@@ -142,24 +126,25 @@ void strategy2(int n, int t) {
 			{
 				for (int i = j; i < n; i++) {
 					double sum = 0;
+					L[i][j] = A[i][j];
 					for (int k = 0; k < j; k++) {
-						sum = sum + L[i][k] * U[k][j];	
+						// sum = sum + L[i][k] * U[k][j];	
+						L[i][j] = L[i][j] - L[i][k] * U[k][j];
 					}
-					L[i][j] = A[i][j] - sum;
 				}
 			}
 			#pragma omp section
 			{
 				for (int i = j; i < n; i++) {
 					double sum = 0;
+					U[j][i] = A[j][i] / L[j][j];
 					for(int k = 0; k < j; k++) {
-						sum = sum + L[j][k] * U[k][i];
+						U[j][i] = U[j][i] - ((L[j][k] * U[k][i]) / L[j][j]);
 					}
 					if (L[j][j] == 0) {	
 						printf("Exiting!\n");			
 						exit(0);
 					}
-					U[j][i] = (A[j][i] - sum) / L[j][j];
 				}
 			}
 		}
