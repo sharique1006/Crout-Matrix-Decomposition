@@ -77,39 +77,36 @@ void sequential(int n) {
 
 void strategy1(int n, int num_threads) {
 	omp_set_num_threads(num_threads);
-	int i, j, k;
 	double sum = 0;
 
-	//#pragma omp parallel for private(i)
+	#pragma omp parallel for
 	for (int i = 0; i < n; i++) {
 		U[i][i] = 1;
 	}
-	#pragma omp parallel for shared(A,L,U)
-		for (int j = 0; j < n; j++)
-		{
-			//for each row....
-			//rows are split into seperate threads for processing
-			#pragma omp parallel for schedule(dynamic) private(sum)
-			for (i = j; i < n; i++) {
+	#pragma omp parallel shared(A,L,U) 
+		for (int j = 0; j < n; j++) {
+			#pragma omp for schedule(static)
+			for (int i = j; i < n; i++) {
 				sum = 0;
-				for (k = 0; k < j; k++) {
-					sum = sum + L[i][k] * U[k][j];	
+				L[i][j] = A[i][j];
+				for (int k = 0; k < j; k++) {
+					// sum = sum + L[i][k] * U[k][j];	
+					L[i][j] = L[i][j] - L[i][k] * U[k][j];
 				}
-				L[i][j] = A[i][j] - sum;
+				// L[i][j] = A[i][j] - sum;
 			}
-			//for each row...
-			//rows are split into seperate threads for processing
-			#pragma omp parallel for schedule(dynamic) private(sum)
-			for (i = j; i < n; i++) {
+			#pragma omp for schedule(static)
+			for (int i = j; i < n; i++) {
 				sum = 0;
-				for(k = 0; k < j; k++) {
-					sum = sum + L[j][k] * U[k][i];
+				U[j][i] = A[j][i] / L[j][j];
+				for(int k = 0; k < j; k++) {
+					U[j][i] = U[j][i] - ((L[j][k] * U[k][i]) / L[j][j]);
 				}
 				if (L[j][j] == 0) {	
 					printf("Exiting!\n");			
 					exit(0);
 				}
-				U[j][i] = (A[j][i] - sum) / L[j][j];
+				// U[j][i] = (A[j][i] - sum) / L[j][j];
 			}
 		}
 }
@@ -251,7 +248,7 @@ int main(int argc, char *argv[]) {
 	int strategy = atoi(argv[4]);
 
 	init_matrix(n, input_file);
-	//displayALU(n);
+	// displayALU(n);
 
 	double start, end;
 
@@ -261,7 +258,7 @@ int main(int argc, char *argv[]) {
 	else if (strategy == 3) { start = omp_get_wtime(); strategy3(n, num_threads); end = omp_get_wtime(); }
 	else { start = omp_get_wtime(); strategy4(n, num_threads); end = omp_get_wtime(); }
 
-	//displayLU(n);
+	// displayLU(n);
 
 	double time_taken = (end - start);
 	printf("Time taken in strategy %d is %f seconds\n", strategy, time_taken);
