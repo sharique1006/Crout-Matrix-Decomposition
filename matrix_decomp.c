@@ -127,8 +127,7 @@ void strategy2(int n, int t) {
 				for (int i = j; i < n; i++) {
 					double sum = 0;
 					L[i][j] = A[i][j];
-					for (int k = 0; k < j; k++) {
-						// sum = sum + L[i][k] * U[k][j];	
+					for (int k = 0; k < j; k++) {	
 						L[i][j] = L[i][j] - L[i][k] * U[k][j];
 					}
 				}
