@@ -74,27 +74,31 @@ void strategy1(int n, int num_threads) {
 }
 
 void strategy2(int n, int t) {
+	omp_set_num_threads(t);
+
+	#pragma omp parallel for
 	for (int i = 0; i < n; i++) {
 		U[i][i] = 1;
 	}
-	omp_set_num_threads(t);
 
-	#pragma omp parallel
-	for (int j = 0; j < n; j++) {
-		#pragma omp parallel sections
+	#pragma omp parallel sections
+	{
+		#pragma omp section
 		{
-			#pragma omp section
-			{
+			for (int j = 0; j < n; j++) {
 				for (int i = j; i < n; i++) {
 					double sum = 0;
-					for (int k = 0; k < j; k++) {
-						sum = sum + L[i][k] * U[k][j];	
+					L[i][j] = A[i][j];
+					for (int k = 0; k < j; k++) {	
+						sum = sum + L[i][k] * U[k][j];
 					}
 					L[i][j] = A[i][j] - sum;
 				}
 			}
-			#pragma omp section
-			{
+		}
+		#pragma omp section
+		{
+			for (int j = 0; j < n; j++) {
 				for (int i = j; i < n; i++) {
 					double sum = 0;
 					for(int k = 0; k < j; k++) {
