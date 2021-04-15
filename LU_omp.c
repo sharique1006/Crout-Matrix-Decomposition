@@ -120,9 +120,9 @@ void get_filename(int n, int num_threads, int strategy, char *outfile, char *fil
 	sprintf(temp_thread, "%d", num_threads);
 	sprintf(temp_strategy, "%d", strategy);
 	strcpy(outfile, file);
-	strcat(outfile, temp_thread);
-	strcat(outfile, "_");
 	strcat(outfile, temp_strategy);
+	strcat(outfile, "_");
+	strcat(outfile, temp_thread);
 	strcat(outfile, ".txt");
 }
 
