@@ -1,8 +1,10 @@
-make clean
-make
-make sequential n=50 f="input_50.txt" t=4
-python3 checker.py input_50.txt output_L_4_0.txt output_U_4_0.txt
-make strategy1 n=50 f="input_50.txt" t=4
-python3 checker.py input_50.txt output_L_4_1.txt output_U_4_1.txt
-make strategy2 n=50 f="input_50.txt" t=4
-python3 checker.py input_50.txt output_L_4_2.txt output_U_4_2.txt
+matrix_size=$1
+input_file=$2
+num_threads=$3
+strategy=$4
+
+if [ ${strategy} == 4 ] ; then
+    mpiexec -n $num_threads ./LU_mpi $matrix_size $input_file
+else
+    ./LU_omp $matrix_size $input_file $num_threads $strategy
+fi

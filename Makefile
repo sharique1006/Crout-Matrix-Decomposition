@@ -1,25 +1,27 @@
-all: compile
+all: omp mpi
 
-compile:
-	@ gcc -o0 -fopenmp matrix_decomp.c -o matrix_decomp
+omp:
+	@ gcc -o0 -fopenmp LU_omp.c -o LU_omp
 
+mpi:
+	@ mpicc -g -Wall -o LU_mpi LU_mpi.c
+	
 sequential:
-	@ ./matrix_decomp $(n) $(f) $(t) 0
+	@ ./LU_omp $(n) $(f) $(t) 0
 
 strategy1:
-	@ ./matrix_decomp $(n) $(f) $(t) 1 
+	@ ./LU_omp $(n) $(f) $(t) 1 
 
 strategy2:
-	@ ./matrix_decomp $(n) $(f) $(t) 2
+	@ ./LU_omp $(n) $(f) $(t) 2
 
 strategy3:
-	@ ./matrix_decomp $(n) $(f) $(t) 3 
+	@ ./LU_omp $(n) $(f) $(t) 3 
 
 strategy4:
-	@ ./matrix_decomp $(n) $(f) $(t) 4 
+	@ mpiexec -n 4 ./LU_mpi
 
 clean:
+	@ rm -rf LU_omp
+	@ rm -rf LU_mpi
 	@ rm -rf output*
-	@ rm -rf time.txt
-	@ rm -rf plot.png
-	@ rm -rf matrix_decomp
