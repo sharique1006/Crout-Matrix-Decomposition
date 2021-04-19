@@ -81,13 +81,18 @@ void strategy2(int n, int t) {
 		U[i][i] = 1;
 	}
 
-	#pragma omp parallel
+	// #pragma omp parallel
 	for (int j = 0; j < n; j++) {
+		double sum = 0;
+		for (int k = 0; k < j; k++) {
+			sum = sum + L[j][k] * U[k][j];	
+		}
+		L[j][j] = A[j][j] - sum;
 		#pragma omp parallel sections
 		{
 			#pragma omp section
 			{
-				for (int i = j; i < n; i++) {
+				for (int i = j+1; i < n; i++) {
 					double sum = 0;
 					for (int k = 0; k < j; k++) {
 						sum = sum + L[i][k] * U[k][j];	
