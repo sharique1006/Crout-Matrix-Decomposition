@@ -5,13 +5,64 @@
 
 double **A, **L, **U;
 
+void displayALU(int n) {
+	printf("---------------A-----------------\n");
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			printf("%0.12lf ", A[i][j]);
+		}
+		printf("\n");
+	}
+	// printf("---------------L-----------------\n");
+	// for (int i = 0; i < n; i++) {
+	// 	for (int j = 0; j < n; j++) {
+	// 		printf("%lf ", L[i][j]);
+	// 	}
+	// 	printf("\n");
+	// }
+	// printf("---------------U-----------------\n");
+	// for (int i = 0; i < n; i++) {
+	// 	for (int j = 0; j < n; j++) {
+	// 		printf("%lf ", U[i][j]);
+	// 	}
+	// 	printf("\n");
+	// }
+}
+
+void displayLU(int n) {
+	printf("---------------LU-----------------\n");
+	double sum;
+	for(int i = 0; i < n; i++) {
+		for(int j = 0; j < n; j++) {
+			sum = 0.0;
+			for (int k = 0; k < n; k++) {
+				sum += L[i][k] * U[k][j];
+			}
+			printf("%0.12lf ", sum);
+		}
+		printf("\n");
+	}
+}
+
+
 void sequential(int n) {
 	int i, j, k;
 	double sum = 0;
-
-	for (i = 0; i < n; i++) {
+	L = (double **)malloc(n * sizeof(double *));
+	U = (double **)malloc(n * sizeof(double *));
+	for(int i = 0; i < n; i++) {
+		L[i] = (double *)malloc(n * sizeof(double *));
+		U[i] = (double *)malloc(n * sizeof(double *));
+		for (int j = 0; j < n; j++) {
+			L[i][j] = 0.0;
+			U[i][j] = 0.0;
+		}
 		U[i][i] = 1;
 	}
+
+	// for (i = 0; i < n; i++) {
+	// 	U[i][i] = 1;
+	// }
 
 	for (j = 0; j < n; j++) {
 		for (i = j; i < n; i++) {
@@ -38,49 +89,68 @@ void sequential(int n) {
 
 void strategy1(int n, int num_threads) {
 	omp_set_num_threads(num_threads);
-	double sum = 0;
-	// omp_set_nested(1);
-
+	L = (double **)malloc(n * sizeof(double *));
+	U = (double **)malloc(n * sizeof(double *));
 	#pragma omp parallel for
-	for (int i = 0; i < n; i++) {
+	for(int i = 0; i < n; i++) {
+		L[i] = (double *)malloc(n * sizeof(double *));
+		U[i] = (double *)malloc(n * sizeof(double *));
+		for (int j = 0; j < n; j++) {
+			L[i][j] = 0.0;
+			U[i][j] = 0.0;
+		}
 		U[i][i] = 1;
 	}
-	// #pragma omp parallel shared(A,L,U)
-		for (int j = 0; j < n; j++) {
-			#pragma omp parallel for schedule(dynamic)
-			for (int i = j; i < n; i++) {
-				sum = 0;
-				L[i][j] = A[i][j];
-				for (int k = 0; k < j; k++) {
-					// sum = sum + L[i][k] * U[k][j];	
-					L[i][j] = L[i][j] - L[i][k] * U[k][j];
-				}
-				// L[i][j] = A[i][j] - sum;
+	// double sum = 0;
+	// omp_set_nested(1);
+
+	// #pragma omp parallel for
+	// for (int i = 0; i < n; i++) {
+	// 	U[i][i] = 1;
+	// }
+	for (int j = 0; j < n; j++) {
+		#pragma omp parallel for schedule(static)
+		for (int i = j; i < n; i++) {
+			double sum = 0;
+			for (int k = 0; k < j; k++) {
+				sum = sum + L[i][k] * U[k][j];	
 			}
-			#pragma omp parallel for schedule(dynamic)
-			for (int i = j; i < n; i++) {
-				sum = 0;
-				U[j][i] = A[j][i] / L[j][j];
-				for(int k = 0; k < j; k++) {
-					U[j][i] = U[j][i] - ((L[j][k] * U[k][i]) / L[j][j]);
-				}
-				if (L[j][j] == 0) {	
-					printf("Exiting!\n");			
-					exit(0);
-				}
-				// U[j][i] = (A[j][i] - sum) / L[j][j];
-			}
+			L[i][j] = A[i][j] - sum;
 		}
+		if (L[j][j] == 0) {	
+			printf("Exiting!\n");			
+			exit(0);
+		}
+		#pragma omp parallel for schedule(static)
+		for (int i = j; i < n; i++) {
+			double sum = 0;
+			for(int k = 0; k < j; k++) {
+				sum = sum + L[j][k] * U[k][i];
+			}
+			
+			U[j][i] = (A[j][i] - sum) / L[j][j];
+		}
+	}
 }
 
 void strategy2(int n, int t) {
 	omp_set_num_threads(t);
 
-	#pragma omp parallel for
-	for (int i = 0; i < n; i++) {
+	// // #pragma omp parallel for
+	// for (int i = 0; i < n; i++) {
+	// 	U[i][i] = 1;
+	// }
+	L = (double **)malloc(n * sizeof(double *));
+	U = (double **)malloc(n * sizeof(double *));
+	for(int i = 0; i < n; i++) {
+		L[i] = (double *)malloc(n * sizeof(double *));
+		U[i] = (double *)malloc(n * sizeof(double *));
+		for (int j = 0; j < n; j++) {
+			L[i][j] = 0.0;
+			U[i][j] = 0.0;
+		}
 		U[i][i] = 1;
 	}
-
 	// #pragma omp parallel
 	for (int j = 0; j < n; j++) {
 		double sum = 0;
@@ -88,6 +158,65 @@ void strategy2(int n, int t) {
 			sum = sum + L[j][k] * U[k][j];	
 		}
 		L[j][j] = A[j][j] - sum;
+		if (L[j][j] == 0) {	
+			printf("Exiting!\n");			
+			exit(0);
+		}
+		#pragma omp parallel sections
+		{
+			#pragma omp section
+			{
+				#pragma omp parallel for schedule(static)
+				for (int i = j+1; i < n; i++) {
+					double sum = 0;
+					for (int k = 0; k < j; k++) {
+						sum = sum + L[i][k] * U[k][j];	
+					}
+					L[i][j] = A[i][j] - sum;
+				}
+			}
+
+			#pragma omp section
+			{	
+				#pragma omp parallel for schedule(static)
+				for (int i = j; i < n; i++) {
+					double sum = 0;
+					for(int k = 0; k < j; k++) {
+						sum = sum + L[j][k] * U[k][i];
+					}
+					
+					U[j][i] = (A[j][i] - sum) / L[j][j];
+				}
+			}
+		}
+	}
+}
+
+void strategy3(int n, int num_threads) {
+	omp_set_num_threads(num_threads);
+	L = (double **)malloc(n * sizeof(double *));
+	U = (double **)malloc(n * sizeof(double *));
+	#pragma omp parallel for
+	for(int i = 0; i < n; i++) {
+		L[i] = (double *)malloc(n * sizeof(double *));
+		U[i] = (double *)malloc(n * sizeof(double *));
+		for (int j = 0; j < n; j++) {
+			L[i][j] = 0.0;
+			U[i][j] = 0.0;
+		}
+		U[i][i] = 1;
+	}
+	for (int j = 0; j < n; j++) {
+		double sum = 0;
+		// #pragma omp parallel for schedule(dynamic)
+		for (int k = 0; k < j; k++) {
+			sum = sum + L[j][k] * U[k][j];	
+		}
+		L[j][j] = A[j][j] - sum;
+		if (L[j][j] == 0) {	
+			printf("Exiting!\n");			
+			exit(0);
+		}
 		#pragma omp parallel sections
 		{
 			#pragma omp section
@@ -100,6 +229,7 @@ void strategy2(int n, int t) {
 					L[i][j] = A[i][j] - sum;
 				}
 			}
+
 			#pragma omp section
 			{
 				for (int i = j; i < n; i++) {
@@ -107,19 +237,12 @@ void strategy2(int n, int t) {
 					for(int k = 0; k < j; k++) {
 						sum = sum + L[j][k] * U[k][i];
 					}
-					if (L[j][j] == 0) {	
-						printf("Exiting!\n");			
-						exit(0);
-					}
+					
 					U[j][i] = (A[j][i] - sum) / L[j][j];
 				}
 			}
 		}
 	}
-}
-
-void strategy3(int n, int num_threads) {
-
 }
 
 void get_filename(int n, int num_threads, int strategy, char *outfile, char *file) {
@@ -165,17 +288,6 @@ void init_matrix(int n, char *input_file) {
 		}
 	}
 	fclose(f);
-	/*Initialise L & U as 0's*/
-	L = (double **)malloc(n * sizeof(double *));
-	U = (double **)malloc(n * sizeof(double *));
-	for(int i = 0; i < n; i++) {
-		L[i] = (double *)malloc(n * sizeof(double *));
-		U[i] = (double *)malloc(n * sizeof(double *));
-		for (int j = 0; j < n; j++) {
-			L[i][j] = 0.0;
-			U[i][j] = 0.0;
-		}
-	}
 }
 
 int main(int argc, char *argv[]) {
@@ -185,7 +297,7 @@ int main(int argc, char *argv[]) {
 	int strategy = atoi(argv[4]);
 
 	init_matrix(n, input_file);
-
+	// displayALU(n);
 	double start, end;
 
 	if (strategy == 0) { start = omp_get_wtime(); sequential(n); end = omp_get_wtime(); }
@@ -194,7 +306,8 @@ int main(int argc, char *argv[]) {
 	else if (strategy == 3) { start = omp_get_wtime(); strategy3(n, num_threads); end = omp_get_wtime(); }
 
 	double time_taken = (end - start);
-	printf("Time taken in strategy %d is %f seconds\n", strategy, time_taken);
+	// displayLU(n);
+	// printf("Time taken in strategy %d is %f seconds\n", strategy, time_taken);
 	write_to_file(n, num_threads, strategy);
 
 	return 0;

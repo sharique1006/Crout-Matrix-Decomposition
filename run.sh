@@ -1,3 +1,4 @@
+#!/bin/bash
 matrix_size=$1
 input_file=$2
 num_threads=$3
