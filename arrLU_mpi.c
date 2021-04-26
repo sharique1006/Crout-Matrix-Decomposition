@@ -3,6 +3,8 @@
 #include <string.h>
 #include <mpi.h>
 
+double *A, *L, *U;
+
 void get_filename(int num_threads, int strategy, char *outfile, char *file) {
 	char temp_thread[5], temp_strategy[5];
 	sprintf(temp_thread, "%d", num_threads);
@@ -33,17 +35,20 @@ void write_output(double arr_L[],  double arr_U[], int n, int num_threads, int s
 }
 
 
-void init_matrix(double A[], int n, char *input_file) {
+void init_matrix(int n, char *input_file) {
+	
 	FILE *f;
 	f = fopen(input_file, "r");
+	A = (double *)malloc(n*n * sizeof(double *));
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
-			if (!fscanf(f, "%140lf ", &A[n*i + j])) {
+			if (!fscanf(f, "%140lf ", &A[i*n+j])) {
 				break;
 			}
 		}
 	}
 	fclose(f);
+	
 }
 
 void print_matrix(double M[], int n) {
@@ -93,7 +98,7 @@ void get_all_rows(double M[], double row[], int n, int rank, int rows_per_thread
 	}
 }
 
-void zero_fill(double M[], int n) {
+void zero_fill(double *M, int n) {
 	for(int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
 			M[i*n + j] = 0;
@@ -101,7 +106,7 @@ void zero_fill(double M[], int n) {
 	}
 }
 
-void copy_matrix(double M_copy[], double M[], int n) {
+void copy_matrix(double *M_copy, double *M, int n) {
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
 			M_copy[n*i + j] = M[n*i + j];
@@ -109,10 +114,15 @@ void copy_matrix(double M_copy[], double M[], int n) {
 	}
 }
 
-void LU_decomp(double A[], double L[], double U[], int n, int rank, int comm_sz) {
+void LU_decomp(int n, int rank, int comm_sz) {
 	int rows_per_thread = n/comm_sz;
 
-	double A_2[n*n], L_2[n*n], U_2[n*n], L_3[n*rows_per_thread], U_3[n*rows_per_thread],  U_t[n*n];
+	double *A_2=(double *)malloc(n*n * sizeof(double *));
+	double *L_2=(double *)malloc(n*n * sizeof(double *));
+	double *U_2=(double *)malloc(n*n * sizeof(double *));
+	double *U_t=(double *)malloc(n*n * sizeof(double *));
+	double *L_3=(double *)malloc(n*rows_per_thread * sizeof(double *));
+	double *U_3=(double *)malloc(n*rows_per_thread * sizeof(double *));
 
 	if (rank == 0) {
 		copy_matrix(A_2, A, n);
@@ -120,13 +130,17 @@ void LU_decomp(double A[], double L[], double U[], int n, int rank, int comm_sz)
 	}
 	zero_fill(L_2, n);
 	zero_fill(U_2, n);
+	
 	MPI_Bcast(A_2, n*n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	// printf("ENTERING FOR LOOP!\n");
-
+	int end=(rank + 1)*rows_per_thread;
+	if(rank==comm_sz-1){
+		end=n;
+	}
 	for (int i = 0; i < n; i++) {
 		// printf("ENTERING FIRST INNER LOOP!\n");
-		for (int j = rank*rows_per_thread; j < (rank + 1)*rows_per_thread; j++) {
+		for (int j = rank*rows_per_thread; j < end; j++) {
 			if (j < i) {
 				L_2[j*n + i] = 0;
 			}
@@ -144,7 +158,7 @@ void LU_decomp(double A[], double L[], double U[], int n, int rank, int comm_sz)
 		MPI_Bcast(L_2, n*n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 		// printf("ENTERING SECOND INNER LOOP!\n");
-		for(int j = rank*rows_per_thread; j < (rank + 1)*rows_per_thread; j++) {
+		for(int j = rank*rows_per_thread; j <end; j++) {
 			if(j < i) {
 				U_2[i*n + i] = 0;
 			}
@@ -166,24 +180,20 @@ void LU_decomp(double A[], double L[], double U[], int n, int rank, int comm_sz)
 	}
 	// printf("LEAVING FOR LOOP!\n");
 	if(rank == 0) {
-		printf("---------------L-----------------\n");
-		print_matrix(L_2, n);
-		printf("---------------U-----------------\n");
-		print_matrix(U_2, n);
-		printf("---------------LU-----------------\n");
-		matrix_mult(L_2, U_2, n);
+		// printf("---------------L-----------------\n");
+		// print_matrix(L_2, n);
+		// printf("---------------U-----------------\n");
+		// print_matrix(U_2, n);
+		// printf("---------------LU-----------------\n");
+		// matrix_mult(L_2, U_2, n);
 		write_output(L_2, U_2, n, comm_sz, 4);
 	}
-	MPI_Barrier(MPI_COMM_WORLD);
+	// MPI_Barrier(MPI_COMM_WORLD);
 }
 
 int main(int argc, char *argv[]) {
 	int n = atoi(argv[1]);
 	char *input_file = argv[2];
-
-	double A[n*n], L[n*n], U[n*n];
-
-	double time_taken;
 	int comm_sz; // Number of Processes
 	int rank; // Process number
 
@@ -192,16 +202,11 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	if (rank == 0) {
-		init_matrix(A, n, input_file);
-		printf("---------------A-----------------\n");
-		print_matrix(A, n);
-		time_taken = MPI_Wtime();
+		init_matrix(n, input_file);
+		// printf("---------------A-----------------\n");
+		// print_matrix(A, n);
 	}
-	LU_decomp(A, L, U, n, rank, comm_sz);
-	if(rank == 0) {
-		time_taken = MPI_Wtime() - time_taken;
-		printf("\nTime taken in strategy 4 is %f seconds\n", time_taken);
-	}
+	LU_decomp(n, rank, comm_sz);
 	MPI_Finalize();
 	return 0;
 }
