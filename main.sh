@@ -7,7 +7,7 @@ do
     do
         echo "Strategy: $strategy"
         echo "===================="
-        for ((num_threads = 1 ; num_threads <= 16 ; num_threads*=2)); 
+        for ((num_threads = 2 ; num_threads <= 16 ; num_threads*=2)); 
         do
             echo "Number of Threads: $num_threads"
             time bash run.sh $matrix_size "input_${matrix_size}.txt" $num_threads $strategy
@@ -24,7 +24,7 @@ do
     echo "Matrix Size: $matrix_size"
     echo "Strategy: 4"
     echo "===================="
-    for ((num_threads = 1 ; num_threads <= 6 ; num_threads*=2)); 
+    for ((num_threads = 2 ; num_threads <= 6 ; num_threads+=2)); 
     do
         echo "Number of Threads: $num_threads"
         time bash run.sh $matrix_size "input_${matrix_size}.txt" $num_threads 4
@@ -33,9 +33,3 @@ do
     done
     echo "===================="
 done
-
-
-
-
-
-
