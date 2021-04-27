@@ -5,46 +5,6 @@
 
 double **A, **L, **U;
 
-void displayALU(int n) {
-	printf("---------------A-----------------\n");
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			printf("%0.12lf ", A[i][j]);
-		}
-		printf("\n");
-	}
-	// printf("---------------L-----------------\n");
-	// for (int i = 0; i < n; i++) {
-	// 	for (int j = 0; j < n; j++) {
-	// 		printf("%lf ", L[i][j]);
-	// 	}
-	// 	printf("\n");
-	// }
-	// printf("---------------U-----------------\n");
-	// for (int i = 0; i < n; i++) {
-	// 	for (int j = 0; j < n; j++) {
-	// 		printf("%lf ", U[i][j]);
-	// 	}
-	// 	printf("\n");
-	// }
-}
-
-void displayLU(int n) {
-	printf("---------------LU-----------------\n");
-	double sum;
-	for(int i = 0; i < n; i++) {
-		for(int j = 0; j < n; j++) {
-			sum = 0.0;
-			for (int k = 0; k < n; k++) {
-				sum += L[i][k] * U[k][j];
-			}
-			printf("%0.12lf ", sum);
-		}
-		printf("\n");
-	}
-}
-
-
 void sequential(int n) {
 	int i, j, k;
 	double sum = 0;
@@ -245,37 +205,18 @@ void strategy3(int n, int num_threads) {
 	}
 }
 
-void get_filename(int n, int num_threads, int strategy, char *outfile, char *file) {
-	char temp_thread[5], temp_strategy[5];
-	sprintf(temp_thread, "%d", num_threads);
-	sprintf(temp_strategy, "%d", strategy);
-	strcpy(outfile, file);
-	strcat(outfile, temp_strategy);
-	strcat(outfile, "_");
-	strcat(outfile, temp_thread);
-	strcat(outfile, ".txt");
-}
-
-void write_to_file(int n, int num_threads, int strategy) {
-	char outfile_L[100], outfile_U[100];
-	get_filename(n, num_threads, strategy, outfile_L, "output_L_");
-	get_filename(n, num_threads, strategy, outfile_U, "output_U_");
-	FILE *f1 = fopen(outfile_L, "w");
-	FILE *f2 = fopen(outfile_U, "w");
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			fprintf(f1, "%0.12lf ", L[i][j]);
-			fprintf(f2, "%0.12lf ", U[i][j]);
+void write_output(char *fname, double** arr, int n ){
+	FILE *f = fopen(fname, "w");
+	for( int i = 0; i < n; i++){
+		for(int j = 0; j < n; j++){
+			fprintf(f, "%0.12f ", arr[i][j]);
 		}
-		fprintf(f1, "\n");
-		fprintf(f2, "\n");
+		fprintf(f, "\n");
 	}
-	fclose(f1);
-	fclose(f2);
+	fclose(f);
 }
 
 void init_matrix(int n, char *input_file) {
-	/*Read A from file*/
 	FILE *f;
 	f = fopen(input_file, "r");
 	A = (double **)malloc(n * sizeof(double *));
@@ -295,20 +236,18 @@ int main(int argc, char *argv[]) {
 	char *input_file = argv[2];
 	int num_threads = atoi(argv[3]);
 	int strategy = atoi(argv[4]);
+	char *outfile_L = argv[5];
+	char *outfile_U = argv[6];
 
 	init_matrix(n, input_file);
-	// displayALU(n);
-	double start, end;
 
-	if (strategy == 0) { start = omp_get_wtime(); sequential(n); end = omp_get_wtime(); }
-	else if (strategy == 1) { start = omp_get_wtime(); strategy1(n, num_threads); end = omp_get_wtime(); }
-	else if (strategy == 2) { start = omp_get_wtime(); strategy2(n, num_threads); end = omp_get_wtime(); }
-	else if (strategy == 3) { start = omp_get_wtime(); strategy3(n, num_threads); end = omp_get_wtime(); }
+	if (strategy == 0) sequential(n);
+	else if (strategy == 1) strategy1(n, num_threads);
+	else if (strategy == 2) strategy2(n, num_threads);
+	else if (strategy == 3) strategy3(n, num_threads);
 
-	double time_taken = (end - start);
-	// displayLU(n);
-	// printf("Time taken in strategy %d is %f seconds\n", strategy, time_taken);
-	write_to_file(n, num_threads, strategy);
+	write_output(outfile_L, L, n);
+	write_output(outfile_U, U, n);
 
 	return 0;
 }
