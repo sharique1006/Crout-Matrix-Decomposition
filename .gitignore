@@ -50,7 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-<<<<<<< HEAD
 
+LU_omp
+LU_mpi
 *.txt
 *.pdf
+*.png
