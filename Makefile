@@ -7,7 +7,7 @@ mpi:
 	@ mpicc -g -Wall -o LU_mpi LU_mpi.c
 
 arr_mpi:
-	@ mpicc -g -Wall -o arrLU_mpi arrLU_mpi.c
+	@ mpicc -g -o arrLU_mpi arrLU_mpi.c
 	
 sequential:
 	@ ./LU_omp $(n) $(f) $(t) 0
