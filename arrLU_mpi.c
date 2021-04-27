@@ -46,8 +46,7 @@ void init_matrix(int n, char *input_file) {
 	A = (double *)malloc(n*n * sizeof(double ));
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
-			// if (!fscanf(f, "%140lf ", &A[i*n+j])) {
-			if (!fscanf(f, "%lf ", &A[i*n+j])) {
+			if (!fscanf(f, "%140lf ", &A[i*n+j])) {
 				break;
 			}
 		}
@@ -62,69 +61,6 @@ void print_matrix(double M[], int n) {
 			printf("%0.12lf ", M[n*i + j]);
 		}
 		printf("\n");
-	}
-}
-
-void matrix_mult(double M1[], double M2[], int n) {
-	double sum;
-	for(int i = 0; i < n; i++) {
-		for(int j = 0; j < n; j++) {
-			sum = 0.0;
-			for (int k = 0; k < n; k++) {
-				sum += M1[n*i + k] * M2[n*k + j];
-			}
-			printf("%0.12lf ", sum);
-		}
-		printf("\n");
-	}
-}
-
-void transpose_matrix(double M[], double M_t[], int n) {
-	for(int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			M_t[i*n + j] = M[j*n + i];
-		}
-	}
-}
-
-void get_all_columns(double M[], double col[], int n, int rank, int cols_per_thread) {
-	for(int sub_col = 0; sub_col < cols_per_thread; sub_col++) {
-		for(int row_index = 0; row_index < n; row_index++) {
-			col[sub_col*n + row_index] = M[(row_index * n) + (rank * cols_per_thread) + sub_col];
-		}
-	}
-}
-
-void get_all_rows(double M[], double row[], int n, int rank, int rows_per_thread) {
-	for(int sub_row = 0; sub_row < rows_per_thread; sub_row++) {
-		for(int col_index = 0; col_index < n; col_index++) {
-			row[sub_row*n + col_index] = M[(rank * rows_per_thread * n) + (sub_row * n) + col_index];
-		}
-	}
-}
-
-void zero_fill(double *M, int n) {
-	for(int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			M[i*n + j] = 0;
-		}
-	}
-}
-
-void zero_fill2(double *M, int n) {
-	for(int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			M[i*n + j] = 0;
-		}
-		M[i*n + i] = 1;
-	}
-}
-
-void copy_matrix(double *M_copy, double *M, int n) {
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			M_copy[n*i + j] = M[n*i + j];
-		}
 	}
 }
 
@@ -146,34 +82,34 @@ void Recv(void* location, int size, MPI_Datatype datatype, int source, int tag){
 	}
 }
 
-void LU_decomp(int n, int rank, int comm_sz) {
+void startegy4(int n, int rank, int comm_sz) {
 
 	double *L=(double *)malloc(n*n * sizeof(double));
-	double *U_2=(double *)malloc(n*n * sizeof(double));
+	double *U=(double *)malloc(n*n * sizeof(double));
 
 	for(int i=0;i<n;i++){
 		for(int k=0;k<n;k++){
 			L[i*n+k]=0;
-			U_2[i*n+k]=0;
+			U[i*n+k]=0;
 		}
 	}
 
 	for(int i = 0; i < n; i++) {
-		U_2[i*n + i] = 1;
+		U[i*n + i] = 1;
 	}
 	int i,k;
 	int start,end;
 
 	// if(rank==0){
-	// 	for(int proc = 1; proc< comm_sz; proc++) MPI_Send(U_2,n*n,MPI_DOUBLE,proc,1,MPI_COMM_WORLD);
+	// 	for(int proc = 1; proc< comm_sz; proc++) MPI_Send(U,n*n,MPI_DOUBLE,proc,1,MPI_COMM_WORLD);
 	// }else{
-	// 	Recv(U_2, n*n, MPI_DOUBLE, 0, 1);
+	// 	Recv(U, n*n, MPI_DOUBLE, 0, 1);
 	// }
 
 	for (j = 0; j < n; j++) {
 		diff = (float)(n-j)/(float)(comm_sz);
 		start = (diff)*rank+j; 
-		end = (rank==comm_sz-1)? n : (diff)*(rank+1)+j;
+		end = (rank==comm_sz-1) ? n : (diff)*(rank+1)+j;
 
 		// Calc L
 		if(rank==0){
@@ -182,8 +118,8 @@ void LU_decomp(int n, int rank, int comm_sz) {
 			for (i = start; i < end; i++) {
 				double currSum = 0;
 				for (k = 0; k < j; k++) {
-					currSum = currSum + L[i*n+k] * U_2[k*n+j];
-					// printf("Mult L[%d,%d](%lf) and U[%d,%d](%lf) for L[%d,%d] with A[%d][%d](%lf)\n",i,k,L[i*n+k],k,j,U_2[k*n+j],i,j,i,j,A[(i*n+j)]);
+					currSum = currSum + L[i*n+k] * U[k*n+j];
+					// printf("Mult L[%d,%d](%lf) and U[%d,%d](%lf) for L[%d,%d] with A[%d][%d](%lf)\n",i,k,L[i*n+k],k,j,U[k*n+j],i,j,i,j,A[(i*n+j)]);
 				}
 				L[i*n+j] = A[i*n+j] - currSum;
 				// printf("Thread %d wrote in L[%d,%d]\n",rank,i,j);
@@ -205,8 +141,8 @@ void LU_decomp(int n, int rank, int comm_sz) {
 			for (i = start; i < end; i++) {
 				double currSum = 0;
 				for (k = 0; k < j; k++) {
-					currSum = currSum + L[i*n+k] * U_2[k*n+j];	 
-					// printf("Mult L[%d,%d](%lf) and U[%d,%d](%lf) for L[%d,%d] with A[%d][%d] by rank %d\n",i,k,L[i*n+k],k,j,U_2[k*n+j],i,j,i,j,rank);
+					currSum = currSum + L[i*n+k] * U[k*n+j];	 
+					// printf("Mult L[%d,%d](%lf) and U[%d,%d](%lf) for L[%d,%d] with A[%d][%d] by rank %d\n",i,k,L[i*n+k],k,j,U[k*n+j],i,j,i,j,rank);
 				}
 				sum[i-start]=currSum;
 			}
@@ -231,17 +167,20 @@ void LU_decomp(int n, int rank, int comm_sz) {
 			}
 			
 		}
-
+		if (L[j*n+j] == 0) {	
+			printf("Exiting!\n");			
+			exit(0);
+		}
 		// CALC U
 		if(rank==0){
 			// printf("Thread %d Receving %d size\n",rank,end-start);
 			for (i = start; i < end; i++) {
 				double currSum = 0;
 				for (k = 0; k < j; k++) {
-					currSum = currSum + L[j*n+k] * U_2[k*n+i];	
+					currSum = currSum + L[j*n+k] * U[k*n+i];	
 					// printf("Mult L[%d,%d] and U[%d,%d] for U[%d,%d] with A[%d][%d]\n",j,k,k,i,j,i,j,i);
 				}
-				U_2[j*n+i] = (A[j*n+i] - currSum) / L[j*n+j];
+				U[j*n+i] = (A[j*n+i] - currSum) / L[j*n+j];
 				// printf("Thread %d wrote in U[%d,%d]\n",rank,i,j);
 			}
 			for(int proc = 1; proc<comm_sz; proc++){
@@ -251,7 +190,7 @@ void LU_decomp(int n, int rank, int comm_sz) {
 				Recv(recsum, -1, MPI_DOUBLE, proc, 0);
 
 				for (i = rstart; i < rend; i++) {
-					U_2[j*n+i] = (A[j*n+i] - recsum[i-rstart]) / L[j*n+j];
+					U[j*n+i] = (A[j*n+i] - recsum[i-rstart]) / L[j*n+j];
 					// printf("Thread %d wrote in U[%d,%d]\n",proc,i,j);
 				}
 			}
@@ -260,8 +199,8 @@ void LU_decomp(int n, int rank, int comm_sz) {
 			for (i = start; i < end; i++) {
 				double currSum = 0;
 				for (k = 0; k < j; k++) {
-					currSum = currSum + L[j*n+k] * U_2[k*n+i];	
-					// printf("Mult L[%d,%d](%lf) and U[%d,%d](%lf) for U[%d,%d] with A[%d][%d] by rank %d\n",j,k, L[j*n+k],k,i, U_2[k*n+i],j,i,j,i,rank);
+					currSum = currSum + L[j*n+k] * U[k*n+i];	
+					// printf("Mult L[%d,%d](%lf) and U[%d,%d](%lf) for U[%d,%d] with A[%d][%d] by rank %d\n",j,k, L[j*n+k],k,i, U[k*n+i],j,i,j,i,rank);
 
 				}
 				sum[i-start]=currSum;
@@ -273,36 +212,29 @@ void LU_decomp(int n, int rank, int comm_sz) {
 		//SEND U
 		if(rank==0){
 			for(int proc = 1; proc< comm_sz; proc++){
-				double sendU_2[(n-j)];
+				double sendU[(n-j)];
 				for(i=j;i<n;i++){
-					sendU_2[(i-j)] = U_2[j*n+i];
+					sendU[(i-j)] = U[j*n+i];
 				}
-				MPI_Send(sendU_2,(n-j),MPI_DOUBLE,proc,1,MPI_COMM_WORLD);
-				// MPI_Send(U_2,n*n,MPI_DOUBLE,proc,1,MPI_COMM_WORLD);
+				MPI_Send(sendU,(n-j),MPI_DOUBLE,proc,1,MPI_COMM_WORLD);
+				// MPI_Send(U,n*n,MPI_DOUBLE,proc,1,MPI_COMM_WORLD);
 			}
-			// write_output(L, U_2, n, comm_sz, 4);
+			// write_output(L, U, n, comm_sz, 4);
 		}else{
-			double sendU_2[(n-j)];
-			Recv(sendU_2, (n-j), MPI_DOUBLE, 0, 1);
+			double sendU[(n-j)];
+			Recv(sendU, (n-j), MPI_DOUBLE, 0, 1);
 			for(i=j;i<n;i++){
-				U_2[j*n+i]=sendU_2[(i-j)];
+				U[j*n+i]=sendU[(i-j)];
 			}
-			// Recv(U_2, n*n, MPI_DOUBLE, 0, 1);
+			// Recv(U, n*n, MPI_DOUBLE, 0, 1);
 		}
 		
 		// if(j==1) while(1);
 		
 	}
 	if(rank == 0) {
-		// printf("---------------L-----------------\n");
-		// print_matrix(L, n);
-		// printf("---------------U-----------------\n");
-		// print_matrix(U_2, n);
-		// printf("---------------LU-----------------\n");
-		// matrix_mult(L, U_2, n);
-		write_output(L, U_2, n, comm_sz, 4);
+		write_output(L, U, n, comm_sz, 4);
 	}
-	// MPI_Barrier(MPI_COMM_WORLD);
 }
 
 int main(int argc, char *argv[]) {
@@ -318,7 +250,7 @@ int main(int argc, char *argv[]) {
 	if (rank == 0) {
 		init_matrix(n, input_file);
 	}
-	LU_decomp(n, rank, comm_sz);
+	startegy4(n, rank, comm_sz);
 	MPI_Finalize();
 	return 0;
 }
