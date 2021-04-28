@@ -25,3 +25,4 @@ clean:
 	@ rm -rf LU_omp
 	@ rm -rf LU_mpi
 	@ rm -rf output*
+	@ rm -rf *.png
